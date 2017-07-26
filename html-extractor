@@ -1,0 +1,135 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+import xlsxwriter as xl
+
+workbook = xl.Workbook('data.xlsx')
+PROXY = "10.3.100.207:8080"
+op = webdriver.ChromeOptions()
+op.add_argument("--incognito")
+op.add_argument('--proxy-server=%s' % PROXY)
+op.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+titles = []
+for i in range(20,30):
+    browser = webdriver.Chrome(executable_path='/home/vishal/Desktop/chromedriver', chrome_options=op)
+    url = "http://www.indiavotes.com/pc/detail/78"+str(i)+"/58/16"
+    browser.get(url)
+
+
+    timeout  = 20
+    try:
+        graph = WebDriverWait(browser,timeout).until(EC.visibility_of_all_elements_located((By.XPATH, '//*[@id="DataTables_Table_0"]')))
+    except TimeoutException:
+        print("Timed out waiting for page to load")
+        browser.quit()
+
+
+    titles_element = browser.find_elements_by_xpath('//*[@id="DataTables_Table_0"]')
+    titles.append([x.text for x in titles_element])
+    browser.close()
+
+print(titles)
+
+m = 0
+for title in titles:
+    m = m+1
+    worksheet = workbook.add_worksheet(str(m))
+    arr = title[0].split('\n')
+
+    i = 0
+
+    snum = []
+    pos = []
+    cand = []
+    name = []
+    votes = []
+    votep = []
+    party = []
+
+    for strings in arr:
+        if i >= 2:
+            val1 = strings.split(' ', 1)
+            snum.append(val1[0])
+
+            val2 = strings.split(' ', 2)
+            pos.append(val2[1])
+
+            val3 = strings.split(' ')
+            flag = 0
+            name = ""
+            poll = ""
+            for part in val3:
+                if part[0].isalpha():
+
+                    if flag == 0 or flag == 1:
+                        name = name + ' ' + part
+                        flag = 1
+                    elif flag == 3:
+                        poll = poll + ' ' + part
+
+
+
+                elif part[0].isdigit() and flag == 1:
+                    votes.append(part)
+                    flag = 2
+
+                elif part[0].isdigit() and flag == 2:
+                    votep.append(part)
+                    flag = 3
+
+            cand.append(name)
+            party.append(poll)
+
+        i = i + 1
+    '''
+    print pos
+    print cand
+    print votes
+    print votep
+    print party
+    '''
+
+    row = 0
+    col = 0
+
+    # z = 0
+
+    for item in snum:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+    row = 0
+    col += 1
+
+    for item in pos:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+    row = 0
+    col += 1
+    for item in cand:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+    row = 0
+    col += 1
+    for item in votes:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+    row = 0
+    col += 1
+    for item in votep:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+    row = 0
+    col += 1
+    for item in party:
+        worksheet.write(row, col, item)
+        row = row + 1
+
+workbook.close()
+
